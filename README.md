@@ -1,0 +1,63 @@
+# Ecosistema de Automatización IA — Leads VIP con Propuestas (HITL)
+
+**Nicolas Navarro** · Trabajo Final
+
+Sistema que califica leads comerciales entrantes con IA, redacta una propuesta personalizada, y **nunca contacta a un cliente real sin que un humano la apruebe primero**.
+
+## Stack
+
+| Categoría | Herramienta |
+|---|---|
+| Orquestador | **n8n** |
+| Base de datos | **Airtable** (3 tablas vinculadas: Leads, Propuestas, Errores) |
+| Procesamiento IA | **Claude Haiku 4.5** (Anthropic API), prompt estructurado con Structured Output Parser |
+| Canal de salida | **Gmail** (envío final, con Thread ID) + **Slack** (notificación HITL) |
+
+## Enlaces
+
+- **Workflow en vivo (n8n):** https://nnavarro2890.app.n8n.cloud/workflow/b3ZTGcvM6Ib7CTpf
+- **Base de datos (Airtable, lectura):** https://airtable.com/app9d9WVwEBaTXKlJ
+- **Dashboard de control (vista pública):** https://airtable.com/app9d9WVwEBaTXKlJ/shrq2kMKprjir606a
+
+## Archivos de este repo
+
+| Archivo | Contenido |
+|---|---|
+| `01_arquitectura.pdf` | Diagrama visual completo del flujo (triggers, IA, HITL, canales de salida, manejo de errores) |
+| `02_manual_datos.pdf` | Esquema de las 3 tablas de Airtable + esquemas JSON de cada integración |
+| `03_matriz_costos.pdf` | Comparativa de modelos de IA y justificación de costos, con números reales de las pruebas |
+| `04_seguridad_resiliencia.pdf` | Minimización de datos, rutas de error, y explicación de los puntos HITL |
+| `blueprint_raw.json` | Export técnico completo del workflow de n8n (21 nodos), importable |
+| `blueprint.json` | Versión resumida y comentada del mismo flujo, para lectura rápida |
+
+## Arquitectura en una línea
+
+```
+Airtable (Estado=Pendiente)
+  → Validar datos completos (si faltan: log de error, corta acá)
+  → Claude Haiku 4.5 clasifica VIP + redacta propuesta (JSON estructurado)
+  → Guarda en Airtable + notifica al equipo por Slack
+  → PAUSA (espera aprobación humana, revisa cada 1 min, máx. 5 intentos)
+  → Si se aprueba: envía por Gmail, guarda el Thread ID, marca "Enviado"
+  → Si se agotan los intentos: marca "Rechazado" y registra el timeout
+```
+
+## Pruebas realizadas (5, incluyendo camino infeliz)
+
+| # | Caso | Resultado |
+|---|---|---|
+| 1 | Lead completo, presupuesto bajo, sin urgencia | Clasificado correctamente como **no VIP**, propuesta generada, aprobado y enviado por Gmail con éxito |
+| 2 | Lead completo, presupuesto alto + urgencia | Clasificado correctamente como **VIP**, aprobado y enviado por Gmail con éxito |
+| 3 | Loop HITL real | El lead quedó sin aprobar durante 2 ciclos completos (confirmado "✓2" en n8n) antes de aprobarse |
+| 4 | Guarda anti-loop-infinito | Lead dejado sin aprobar a propósito — el sistema cortó exactamente a los 5 intentos (`$runIndex >= 4`), marcó **Rechazado** y registró el timeout |
+| 5 | Camino infeliz: datos incompletos | Lead sin Email ni Mensaje Original — la validación lo detectó *antes* de llamar a la IA, registró el error en Airtable (vinculado al lead) y marcó **Estado=Error**, sin gastar en la API |
+
+### Nota metodológica
+
+Para la prueba #5 se usó la función de *pin data* de n8n (inyección directa de datos de prueba en el nodo Trigger) en lugar de depender del disparador real, ya que el botón "Test workflow" del editor siempre recupera el registro modificado más recientemente — no necesariamente el que se quiere probar. Esto permitió validar el camino infeliz de forma determinística, con escrituras reales en Airtable.
+
+## Aclaraciones de diseño
+
+- **Modelo de IA:** se usó Claude Haiku 4.5 (real, vía API propia de Anthropic) — no un sustituto gratuito — dado que la matriz de costos necesitaba números reales.
+- **Contador de reintentos:** la guarda anti-loop-infinito usa `$runIndex` (índice de corrida propio del nodo Filtro), no un conteo vía `$('Pausa').all().length` — ese método devuelve solo los ítems de la última corrida del nodo, no un histórico, y fue corregido tras detectarse en pruebas en vivo que el loop no cortaba al límite esperado.
+- **Video demo:** no incluido en este repositorio (a grabar por separado, mostrando trigger → procesamiento → resultado, sin exponer credenciales).
