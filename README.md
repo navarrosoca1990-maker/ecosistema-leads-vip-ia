@@ -16,8 +16,8 @@ Sistema que califica leads comerciales entrantes con IA, redacta una propuesta p
 ## Enlaces
 
 - **Workflow en vivo (n8n):** https://nnavarro2890.app.n8n.cloud/workflow/b3ZTGcvM6Ib7CTpf
-- **Base de datos (Airtable, lectura):** https://airtable.com/app9d9WVwEBaTXKlJ
-- **Dashboard de control (vista pública):** https://airtable.com/app9d9WVwEBaTXKlJ/shrq2kMKprjir606a
+- **Base de datos (Airtable, vista pública de lectura):** https://airtable.com/app9d9WVwEBaTXKlJ/shrq2kMKprjir606a
+- **Dashboard de control:** mismo enlace de arriba (vista agrupada por Estado)
 
 ## Archivos de este repo
 
@@ -29,6 +29,7 @@ Sistema que califica leads comerciales entrantes con IA, redacta una propuesta p
 | `04_seguridad_resiliencia.pdf` | Minimización de datos, rutas de error, y explicación de los puntos HITL |
 | `blueprint_raw.json` | Export técnico completo del workflow de n8n (21 nodos), importable |
 | `blueprint.json` | Versión resumida y comentada del mismo flujo, para lectura rápida |
+| `evidencia/` | Capturas reales de las ejecuciones de prueba (ver tabla de abajo) |
 
 ## Arquitectura en una línea
 
@@ -44,17 +45,21 @@ Airtable (Estado=Pendiente)
 
 ## Pruebas realizadas (5, incluyendo camino infeliz)
 
-| # | Caso | Resultado |
-|---|---|---|
-| 1 | Lead completo, presupuesto bajo, sin urgencia | Clasificado correctamente como **no VIP**, propuesta generada, aprobado y enviado por Gmail con éxito |
-| 2 | Lead completo, presupuesto alto + urgencia | Clasificado correctamente como **VIP**, aprobado y enviado por Gmail con éxito |
-| 3 | Loop HITL real | El lead quedó sin aprobar durante 2 ciclos completos (confirmado "✓2" en n8n) antes de aprobarse |
-| 4 | Guarda anti-loop-infinito | Lead dejado sin aprobar a propósito — el sistema cortó exactamente a los 5 intentos (`$runIndex >= 4`), marcó **Rechazado** y registró el timeout |
-| 5 | Camino infeliz: datos incompletos | Lead sin Email ni Mensaje Original — la validación lo detectó *antes* de llamar a la IA, registró el error en Airtable (vinculado al lead) y marcó **Estado=Error**, sin gastar en la API |
+| # | Caso | Resultado | Evidencia |
+|---|---|---|---|
+| 1 | Lead completo, presupuesto bajo, sin urgencia | Clasificado correctamente como **no VIP**, propuesta generada, aprobado y enviado por Gmail con éxito | [`evidencia/01_test1_ana_martinez_no_vip.png`](evidencia/01_test1_ana_martinez_no_vip.png) |
+| 2 | Lead completo, presupuesto alto + urgencia | Clasificado correctamente como **VIP**, aprobado y enviado por Gmail con éxito | [`evidencia/02_test2_roberto_vip_loop_x2.png`](evidencia/02_test2_roberto_vip_loop_x2.png) |
+| 3 | Loop HITL real | El lead quedó sin aprobar durante 2 ciclos completos (confirmado "✓2" en n8n) antes de aprobarse | [`evidencia/03_loop_hitl_vuelve_a_pausa.png`](evidencia/03_loop_hitl_vuelve_a_pausa.png) |
+| 4 | Guarda anti-loop-infinito | Lead dejado sin aprobar a propósito — el sistema cortó exactamente a los 5 intentos (`$runIndex >= 4`), marcó **Rechazado** y registró el timeout | Confirmado vía API de n8n (ejecución #450, runIndex 0-4); *captura pendiente* |
+| 5 | Camino infeliz: datos incompletos | Lead sin Email ni Mensaje Original — la validación lo detectó *antes* de llamar a la IA, registró el error en Airtable (vinculado al lead) y marcó **Estado=Error**, sin gastar en la API | Confirmado vía API de n8n (ejecución #463, pin data); *captura pendiente* |
 
 ### Nota metodológica
 
 Para la prueba #5 se usó la función de *pin data* de n8n (inyección directa de datos de prueba en el nodo Trigger) en lugar de depender del disparador real, ya que el botón "Test workflow" del editor siempre recupera el registro modificado más recientemente — no necesariamente el que se quiere probar. Esto permitió validar el camino infeliz de forma determinística, con escrituras reales en Airtable.
+
+### Nota sobre el link de la base
+
+El enlace público de arriba comparte la vista de la tabla **Leads** (agrupada por Estado) — Airtable Free no permite compartir una base completa con sus 3 tablas en un solo link público; cada tabla necesita su propia vista compartida. Las tablas Propuestas y Errores son visibles para cualquiera con acceso de colaborador a la base.
 
 ## Aclaraciones de diseño
 
