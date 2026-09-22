@@ -50,12 +50,12 @@ Airtable (Estado=Pendiente)
 | 1 | Lead completo, presupuesto bajo, sin urgencia | Clasificado correctamente como **no VIP**, propuesta generada, aprobado y enviado por Gmail con éxito | [`evidencia/01_test1_ana_martinez_no_vip.png`](evidencia/01_test1_ana_martinez_no_vip.png) |
 | 2 | Lead completo, presupuesto alto + urgencia | Clasificado correctamente como **VIP**, aprobado y enviado por Gmail con éxito | [`evidencia/02_test2_roberto_vip_loop_x2.png`](evidencia/02_test2_roberto_vip_loop_x2.png) |
 | 3 | Loop HITL real | El lead quedó sin aprobar durante 2 ciclos completos (confirmado "✓2" en n8n) antes de aprobarse | [`evidencia/03_loop_hitl_vuelve_a_pausa.png`](evidencia/03_loop_hitl_vuelve_a_pausa.png) |
-| 4 | Guarda anti-loop-infinito | Lead dejado sin aprobar a propósito — el sistema cortó exactamente a los 5 intentos (`$runIndex >= 4`), marcó **Rechazado** y registró el timeout | Confirmado vía API de n8n (ejecución #450, runIndex 0-4); *captura pendiente* |
-| 5 | Camino infeliz: datos incompletos | Lead sin Email ni Mensaje Original — la validación lo detectó *antes* de llamar a la IA, registró el error en Airtable (vinculado al lead) y marcó **Estado=Error**, sin gastar en la API | Confirmado vía API de n8n (ejecución #463, pin data); *captura pendiente* |
+| 4 | Guarda anti-loop-infinito | Lead dejado sin aprobar a propósito — el sistema cortó exactamente a los 5 intentos (`$runIndex >= 4`), marcó **Rechazado** y registró el timeout | [`evidencia/05_test4_timeout_5_ciclos.png`](evidencia/05_test4_timeout_5_ciclos.png) (ejecución real, `Succeeded in 5m 11s`) |
+| 5 | Camino infeliz: datos incompletos | Lead sin Email ni Mensaje Original — la validación lo detectó *antes* de llamar a la IA, registró el error en Airtable (vinculado al lead) y marcó **Estado=Error**, sin gastar en la API | Confirmado vía API de n8n (ejecución #463, pin data) — ver nota metodológica |
 
 ### Nota metodológica
 
-Para la prueba #5 se usó la función de *pin data* de n8n (inyección directa de datos de prueba en el nodo Trigger) en lugar de depender del disparador real, ya que el botón "Test workflow" del editor siempre recupera el registro modificado más recientemente — no necesariamente el que se quiere probar. Esto permitió validar el camino infeliz de forma determinística, con escrituras reales en Airtable.
+Para la prueba #5 se usó la función de *pin data* de n8n (inyección directa de datos de prueba en el nodo Trigger) en lugar de depender del disparador real, ya que el botón "Test workflow" del editor recupera el registro modificado más recientemente — no necesariamente el que se quiere probar. Esto permitió validar el camino infeliz de forma determinística, con escrituras reales en Airtable, confirmadas por API. No se pudo obtener además una captura de pantalla fresca de esta prueba puntual: al reintentarlo, la cuota de ejecuciones automáticas del plan gratuito de n8n (50/50) se agotó y bloqueó los intentos posteriores — un límite real de la plataforma, no del diseño del flujo.
 
 ### Nota sobre el link de la base
 
