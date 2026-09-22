@@ -16,8 +16,8 @@ Sistema que califica leads comerciales entrantes con IA, redacta una propuesta p
 ## Enlaces
 
 - **Workflow en vivo (n8n):** https://nnavarro2890.app.n8n.cloud/workflow/b3ZTGcvM6Ib7CTpf
-- **Base de datos (Airtable, vista pública de lectura):** https://airtable.com/app9d9WVwEBaTXKlJ/shrq2kMKprjir606a
-- **Dashboard de control:** mismo enlace de arriba (vista agrupada por Estado)
+- **Base de datos completa (Airtable, lectura pública — las 3 tablas):** https://airtable.com/app9d9WVwEBaTXKlJ/shrtmhdtEg23LDX4Z
+- **Dashboard / vista agrupada por Estado (tabla Leads):** https://airtable.com/app9d9WVwEBaTXKlJ/shrq2kMKprjir606a
 
 ## Archivos de este repo
 
@@ -57,9 +57,9 @@ Airtable (Estado=Pendiente)
 
 Para la prueba #5 se usó la función de *pin data* de n8n (inyección directa de datos de prueba en el nodo Trigger) en lugar de depender del disparador real, ya que el botón "Test workflow" del editor recupera el registro modificado más recientemente — no necesariamente el que se quiere probar. Esto permitió validar el camino infeliz de forma determinística, con escrituras reales en Airtable, confirmadas por API. No se pudo obtener además una captura de pantalla fresca de esta prueba puntual: al reintentarlo, la cuota de ejecuciones automáticas del plan gratuito de n8n (50/50) se agotó y bloqueó los intentos posteriores — un límite real de la plataforma, no del diseño del flujo.
 
-### Nota sobre el link de la base
+### Nota sobre los links de la base
 
-El enlace público de arriba comparte la vista de la tabla **Leads** (agrupada por Estado) — Airtable Free no permite compartir una base completa con sus 3 tablas en un solo link público; cada tabla necesita su propia vista compartida. Las tablas Propuestas y Errores son visibles para cualquiera con acceso de colaborador a la base.
+Se dejan dos enlaces: el primero da acceso público de lectura a la base completa (las 3 tablas: Leads, Propuestas y Errores), y el segundo es la vista agrupada por Estado dentro de Leads, útil como cuadro de mando rápido.
 
 ## Aclaraciones de diseño
 
