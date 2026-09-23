@@ -45,17 +45,19 @@ Airtable (Estado=Pendiente)
 
 ## Pruebas realizadas (5, incluyendo camino infeliz)
 
+Todas las pruebas se rehicieron desde una base limpia (un lead a la vez, sin datos de pruebas previas mezclados), con captura de cada paso: el lienzo de n8n, el mensaje real de Slack, y — cuando corresponde — el email real en Gmail.
+
 | # | Caso | Resultado | Evidencia |
 |---|---|---|---|
-| 1 | Lead completo, presupuesto bajo, sin urgencia | Clasificado correctamente como **no VIP**, propuesta generada, aprobado y enviado por Gmail con éxito | [`evidencia/01_test1_ana_martinez_no_vip.png`](evidencia/01_test1_ana_martinez_no_vip.png) |
-| 2 | Lead completo, presupuesto alto + urgencia | Clasificado correctamente como **VIP**, aprobado y enviado por Gmail con éxito | [`evidencia/02_test2_roberto_vip_loop_x2.png`](evidencia/02_test2_roberto_vip_loop_x2.png) |
-| 3 | Loop HITL real | El lead quedó sin aprobar durante 2 ciclos completos (confirmado "✓2" en n8n) antes de aprobarse | [`evidencia/03_loop_hitl_vuelve_a_pausa.png`](evidencia/03_loop_hitl_vuelve_a_pausa.png) |
-| 4 | Guarda anti-loop-infinito | Lead dejado sin aprobar a propósito — el sistema cortó exactamente a los 5 intentos (`$runIndex >= 4`), marcó **Rechazado** y registró el timeout | [`evidencia/05_test4_timeout_5_ciclos.png`](evidencia/05_test4_timeout_5_ciclos.png) (ejecución real, `Succeeded in 5m 11s`) |
-| 5 | Camino infeliz: datos incompletos | Lead sin Email ni Mensaje Original — la validación lo detectó *antes* de llamar a la IA, registró el error en Airtable (vinculado al lead) y marcó **Estado=Error**, sin gastar en la API | Confirmado vía API de n8n (ejecución #463, pin data) — ver nota metodológica |
+| 1 | Lead completo (Ana Martínez), presupuesto bajo, sin urgencia | Clasificado correctamente como **no VIP**, aprobado y enviado por Gmail con éxito | [Lienzo](evidencia/t1_01_lienzo_completo.png) · [Slack](evidencia/t1_02_slack_mensaje.png) · [Gmail](evidencia/t1_03_gmail_enviado.png) |
+| 2 | Lead completo (Roberto Fernández), presupuesto alto + urgencia | Clasificado correctamente como **VIP**, aprobado y enviado por Gmail con éxito | [Pausa](evidencia/t2_01_lienzo_pausa.png) · [Slack](evidencia/t2_02_slack_mensaje.png) · [Final](evidencia/t2_03_lienzo_final.png) · [Gmail](evidencia/t2_04_gmail_enviado.png) |
+| 3 | Loop HITL real (Laura Giménez) | El lead quedó sin aprobar durante **5 ciclos completos** (llegó justo al límite) antes de aprobarse — `Succeeded in 5m 11.8s` | [Pausa](evidencia/t3_01_lienzo_pausa.png) · [Slack](evidencia/t3_02_slack_mensaje.png) · [5 ciclos](evidencia/t3_03_lienzo_5_ciclos.png) · [Gmail](evidencia/t3_04_gmail_enviado.png) |
+| 4 | Guarda anti-loop-infinito (Martín Ríos) | Lead dejado sin aprobar a propósito — el sistema cortó exactamente a los 5 intentos, marcó **Rechazado** y registró *"Se agotó el tiempo de espera de aprobación humana (HITL) sin respuesta"* | [Pausa](evidencia/t4_01_lienzo_pausa.png) · [Slack](evidencia/t4_02_slack_mensaje.png) · [Rechazado](evidencia/t4_03_lienzo_rechazado_timeout.png) |
+| 5 | Camino infeliz: datos incompletos | Lead sin Email ni Mensaje Original — la validación lo detectó *antes* de llamar a la IA (`Succeeded in 2.059s`, sin gastar en la API), registró el error en Airtable y marcó **Estado=Error** | [Lienzo](evidencia/t5_01_lienzo_error_datos.png) |
 
 ### Nota metodológica
 
-Para la prueba #5 se usó la función de *pin data* de n8n (inyección directa de datos de prueba en el nodo Trigger) en lugar de depender del disparador real, ya que el botón "Test workflow" del editor recupera el registro modificado más recientemente — no necesariamente el que se quiere probar. Esto permitió validar el camino infeliz de forma determinística, con escrituras reales en Airtable, confirmadas por API. No se pudo obtener además una captura de pantalla fresca de esta prueba puntual: al reintentarlo, la cuota de ejecuciones automáticas del plan gratuito de n8n (50/50) se agotó y bloqueó los intentos posteriores — un límite real de la plataforma, no del diseño del flujo.
+El botón "Execute workflow" del editor de n8n no siempre respeta el filtro configurado del trigger: en varias corridas volvió a procesar el último lead modificado en vez del nuevo. Se resolvió limpiando la tabla Leads antes de cada prueba (dejando un único registro "Pendiente" por vez), lo que garantiza que la ejecución solo puede tomar ese lead. Las ejecuciones automáticas (el poll cada 5 min) sí respetan el filtro correctamente, pero consumen la cuota de 50 ejecuciones/mes del plan gratuito — las manuales desde el editor no la consumen.
 
 ### Nota sobre los links de la base
 
