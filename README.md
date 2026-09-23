@@ -63,6 +63,17 @@ El botón "Execute workflow" del editor de n8n no siempre respeta el filtro conf
 
 Se dejan dos enlaces: el primero da acceso público de lectura a la base completa (las 3 tablas: Leads, Propuestas y Errores), y el segundo es la vista agrupada por Estado dentro de Leads, útil como cuadro de mando rápido.
 
+## Dashboard de control
+
+Se construyó un panel real en Airtable Interfaces con números clave (Total de Leads, Leads VIP, Total de errores), un gráfico de distribución por Estado, y grillas de leads recientes y log de errores.
+
+**No se incluye como link público** porque compartir una Interface de Airtable fuera de la organización es una función del plan pago (Team, USD 24/mes) — el plan gratuito solo permite compartir vistas de tabla sueltas, no el dashboard completo. En su lugar, se deja como evidencia:
+
+- [`evidencia/dashboard_01_kpis_grafico.png`](evidencia/dashboard_01_kpis_grafico.png) — KPIs (Total de Leads, Leads VIP) + gráfico de distribución por Estado
+- [`evidencia/dashboard_02_errores.png`](evidencia/dashboard_02_errores.png) — Total de errores registrados + log de errores
+
+(La vista pública de la sección "Enlaces" de arriba es el sustituto funcional sin costo: no tiene gráficos, pero sí números reales y filtro por Estado.)
+
 ## Aclaraciones de diseño
 
 - **Modelo de IA:** se usó Claude Haiku 4.5 (real, vía API propia de Anthropic) — no un sustituto gratuito — dado que la matriz de costos necesitaba números reales.
