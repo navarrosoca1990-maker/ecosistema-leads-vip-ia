@@ -1,12 +1,13 @@
 {
   "name": "Leads VIP - Propuestas con Aprobación (HITL) v2",
   "platform": "n8n",
+  "workflowId": "qmwyzxEDlq4O8Y6H",
   "workflowUrl": "https://nnavarro2890.app.n8n.cloud/workflow/qmwyzxEDlq4O8Y6H",
   "nodeCount": 29,
   "nodeCountNote": "27 nodos funcionales + 2 notas (sticky notes)",
   "flow": [
     { "name": "Trigger: Nuevo Lead (Airtable)", "type": "n8n-nodes-base.airtableTrigger", "note": "Poll cada 5 min, formula {Estado}='Pendiente', triggerField=Last Modified (produccion)" },
-    { "name": "Prueba: Webhook (lead_id)", "type": "n8n-nodes-base.webhook", "note": "POST /leads-vip-prueba con { lead_id }: procesa un lead puntual para pruebas; pasa por el mismo guard" },
+    { "name": "Prueba: Webhook (lead_id)", "type": "n8n-nodes-base.webhook", "note": "POST /webhook/leads-vip-prueba con { lead_id }: procesa un lead puntual para pruebas; pasa por el mismo guard" },
     { "name": "Normalizar ID Lead", "type": "n8n-nodes-base.set", "note": "lead_id = body.lead_id (webhook) o id (trigger)" },
     { "name": "Releer Lead (Estado Actual)", "type": "n8n-nodes-base.airtable", "operation": "get", "note": "Lee el estado ACTUAL del lead, no el payload del trigger. Todos los nodos siguientes leen de aca" },
     { "name": "Guard: ¿Sigue Pendiente?", "type": "n8n-nodes-base.if", "condition": "Estado == 'Pendiente'", "note": "Anti-reprocesamiento: Enviado / Rechazado / Procesado por IA / Error se omiten" },
@@ -24,7 +25,7 @@
     { "name": "Pausa: Esperar Aprobación", "type": "n8n-nodes-base.wait", "resume": "timeInterval", "amount": 1, "unit": "minutes", "note": "Nodo HITL" },
     { "name": "Releer Propuesta", "type": "n8n-nodes-base.airtable", "note": "get, re-lee el checkbox Aprobado" },
     { "name": "Filtro: ¿Aprobado?", "type": "n8n-nodes-base.if" },
-    { "name": "Filtro: ¿Excedió Intentos?", "type": "n8n-nodes-base.if", "condition": "$runIndex >= 4", "note": "Guarda anti-loop-infinito, corta a las 5 corridas" },
+    { "name": "Filtro: ¿Excedió Intentos?", "type": "n8n-nodes-base.if", "condition": "$runIndex >= 4", "note": "Limite anti-loop-infinito, corta a las 5 corridas" },
     { "name": "Marcar Lead: Rechazado (Timeout) -> Registrar Timeout HITL", "type": "n8n-nodes-base.airtable", "branch": "Excedió Intentos = TRUE" },
     { "name": "Enviar Propuesta (Gmail)", "type": "n8n-nodes-base.gmail", "operation": "send", "note": "texto plano, sin firma de n8n; guarda threadId devuelto" },
     { "name": "Guardar Thread ID y Marcar Enviado -> Marcar Propuesta: Fecha Envío", "type": "n8n-nodes-base.airtable" }
