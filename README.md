@@ -15,9 +15,8 @@ Sistema que califica leads comerciales entrantes con IA, redacta una propuesta p
 
 ## Enlaces
 
-- **Workflow en vivo (n8n):** https://nnavarro2890.app.n8n.cloud/workflow/b3ZTGcvM6Ib7CTpf
+- **Workflow en vivo (n8n):** https://nnavarro2890.app.n8n.cloud/workflow/qmwyzxEDlq4O8Y6H
 - **Base de datos completa (Airtable, lectura pública — las 3 tablas):** https://airtable.com/app9d9WVwEBaTXKlJ/shrtmhdtEg23LDX4Z
-- **Dashboard / vista agrupada por Estado (tabla Leads):** https://airtable.com/app9d9WVwEBaTXKlJ/shrq2kMKprjir606a
 
 ## Archivos de este repo
 
@@ -27,55 +26,62 @@ Sistema que califica leads comerciales entrantes con IA, redacta una propuesta p
 | `02_manual_datos.pdf` | Esquema de las 3 tablas de Airtable + esquemas JSON de cada integración |
 | `03_matriz_costos.pdf` | Comparativa de modelos de IA y justificación de costos, con números reales de las pruebas |
 | `04_seguridad_resiliencia.pdf` | Minimización de datos, rutas de error, y explicación de los puntos HITL |
-| `blueprint_raw.json` | Export técnico completo del workflow de n8n (21 nodos), importable |
+| `blueprint_raw.json` | Export técnico completo del workflow de n8n (29 nodos: 27 funcionales + 2 notas), importable |
 | `blueprint.json` | Versión resumida y comentada del mismo flujo, para lectura rápida |
 | `evidencia/` | Capturas reales de las ejecuciones de prueba (ver tabla de abajo) |
 
 ## Arquitectura en una línea
 
 ```
-Airtable (Estado=Pendiente)
-  → Validar datos completos (si faltan: log de error, corta acá)
-  → Claude Haiku 4.5 clasifica VIP + redacta propuesta (JSON estructurado)
+Airtable (Estado=Pendiente)  ─┐
+Webhook de prueba (lead_id)  ─┴→ Releer el lead en Airtable (estado actual, no el del trigger)
+  → Guard anti-reprocesamiento: si ya no está "Pendiente", se omite (no se vuelve a llamar a la IA)
+  → Validar datos completos (si faltan: log de error indicando qué campos, corta acá)
+  → Claude Haiku 4.5 clasifica VIP + redacta propuesta en texto plano (JSON estructurado)
   → Guarda en Airtable + notifica al equipo por Slack
   → PAUSA (espera aprobación humana, revisa cada 1 min, máx. 5 intentos)
   → Si se aprueba: envía por Gmail, guarda el Thread ID, marca "Enviado"
   → Si se agotan los intentos: marca "Rechazado" y registra el timeout
 ```
 
-## Pruebas realizadas (5, incluyendo camino infeliz)
+## Pruebas realizadas (4 escenarios + guard anti-reprocesamiento)
 
-Todas las pruebas se rehicieron desde una base limpia (un lead a la vez, sin datos de pruebas previas mezclados), con captura de cada paso: el lienzo de n8n, el mensaje real de Slack, y — cuando corresponde — el email real en Gmail.
+Todas las pruebas se corrieron el 26/09/2026 desde una base limpia (tablas Leads, Propuestas y Errores vacías), con un lead por escenario, disparando cada uno por su ID a través del webhook de prueba. De cada caso se captura el lienzo de n8n y, cuando corresponde, el mensaje real de Slack y el email real en Gmail.
 
 | # | Caso | Resultado | Evidencia |
 |---|---|---|---|
-| 1 | Lead completo (Ana Martínez), presupuesto bajo, sin urgencia | Clasificado correctamente como **no VIP**, aprobado y enviado por Gmail con éxito | [Lienzo](evidencia/t1_01_lienzo_completo.png) · [Slack](evidencia/t1_02_slack_mensaje.png) · [Gmail](evidencia/t1_03_gmail_enviado.png) |
-| 2 | Lead completo (Roberto Fernández), presupuesto alto + urgencia | Clasificado correctamente como **VIP**, aprobado y enviado por Gmail con éxito | [Pausa](evidencia/t2_01_lienzo_pausa.png) · [Slack](evidencia/t2_02_slack_mensaje.png) · [Final](evidencia/t2_03_lienzo_final.png) · [Gmail](evidencia/t2_04_gmail_enviado.png) |
-| 3 | Loop HITL real (Laura Giménez) | El lead quedó sin aprobar durante **5 ciclos completos** (llegó justo al límite) antes de aprobarse — `Succeeded in 5m 11.8s` | [Pausa](evidencia/t3_01_lienzo_pausa.png) · [Slack](evidencia/t3_02_slack_mensaje.png) · [5 ciclos](evidencia/t3_03_lienzo_5_ciclos.png) · [Gmail](evidencia/t3_04_gmail_enviado.png) |
-| 4 | Guarda anti-loop-infinito (Martín Ríos) | Lead dejado sin aprobar a propósito — el sistema cortó exactamente a los 5 intentos, marcó **Rechazado** y registró *"Se agotó el tiempo de espera de aprobación humana (HITL) sin respuesta"* | [Pausa](evidencia/t4_01_lienzo_pausa.png) · [Slack](evidencia/t4_02_slack_mensaje.png) · [Rechazado](evidencia/t4_03_lienzo_rechazado_timeout.png) |
-| 5 | Camino infeliz: datos incompletos | Lead sin Email ni Mensaje Original — la validación lo detectó *antes* de llamar a la IA (`Succeeded in 2.059s`, sin gastar en la API), registró el error en Airtable y marcó **Estado=Error** | [Lienzo](evidencia/t5_01_lienzo_error_datos.png) |
+| 1 | Camino infeliz: datos incompletos (lead sin Email ni Mensaje Original) | La validación lo detectó *antes* de llamar a la IA (`Succeeded in 1.733s`, sin gastar en la API), registró *"Datos incompletos: falta Email, Mensaje Original"* y marcó **Estado=Error** | [Lienzo](evidencia/01_datos_incompletos_n8n_744.jpg) · [Errores](evidencia/07_airtable_errores.jpg) |
+| 2 | Lead VIP (Sofía Paz, USD 6.000 + plazo ajustado) | Clasificado como **VIP** (confianza 92 %), aprobado en Airtable y enviado por Gmail en texto plano — `Succeeded in 2m 9s` | [Lienzo 1](evidencia/02_sofia_vip_aprobado_n8n_745_parte1.jpg) · [Lienzo 2](evidencia/02_sofia_vip_aprobado_n8n_745_parte2.jpg) · [Slack](evidencia/08_slack_aviso_sofia.jpg) · [Gmail](evidencia/09_gmail_mail_sofia.jpg) |
+| 3 | Lead no VIP (Carla Díaz, USD 750, sin urgencia) | Clasificado como **no VIP** (confianza 75 %), aprobado y enviado por Gmail — `Succeeded in 2m 9s` | [Lienzo 1](evidencia/03_carla_no_vip_aprobado_n8n_746_parte1.jpg) · [Lienzo 2](evidencia/03_carla_no_vip_aprobado_n8n_746_parte2.jpg) · [Slack](evidencia/08_slack_aviso_carla.jpg) · [Bandeja](evidencia/09_gmail_bandeja_propuestas.jpg) |
+| 4 | Guarda anti-loop-infinito (Diego Torres, VIP, sin aprobar a propósito) | El sistema cortó exactamente a los 5 intentos, marcó **Rechazado** y registró *"Se agotó el tiempo de espera de aprobación humana (HITL) sin respuesta"* — `Succeeded in 5m 10s` | [Lienzo 1](evidencia/04_diego_vip_timeout_n8n_747_parte1.jpg) · [Lienzo 2](evidencia/04_diego_vip_timeout_n8n_747_parte2.jpg) · [Slack](evidencia/08_slack_aviso_diego.jpg) |
+| 5 | Guard anti-reprocesamiento | Un lead ya *Rechazado* que vuelve a entrar al flujo termina en "Omitir: Lead Ya Procesado" en ~1 s, sin llamar a la IA ni crear una segunda propuesta | Probado sobre la versión previa del flujo (ejecuciones #728 y #729) |
+
+Estado final en Airtable: 4 leads, 3 propuestas (una por lead procesado, sin duplicados) y 2 errores — [Leads](evidencia/05_airtable_leads_estado_final.jpg) · [Propuestas](evidencia/06_airtable_propuestas.jpg) · [Errores](evidencia/07_airtable_errores.jpg) · [Base pública](evidencia/11_airtable_base_compartida.jpg).
 
 ### Nota metodológica
 
-El botón "Execute workflow" del editor de n8n no siempre respeta el filtro configurado del trigger: en varias corridas volvió a procesar el último lead modificado en vez del nuevo. Se resolvió limpiando la tabla Leads antes de cada prueba (dejando un único registro "Pendiente" por vez), lo que garantiza que la ejecución solo puede tomar ese lead. Las ejecuciones automáticas (el poll cada 5 min) sí respetan el filtro correctamente, pero consumen la cuota de 50 ejecuciones/mes del plan gratuito — las manuales desde el editor no la consumen.
+Al ejecutar el workflow manualmente desde el editor, el trigger de Airtable **ignora la fórmula de filtro y devuelve siempre el primer registro de la tabla**, sin importar su estado. En pruebas anteriores eso hizo que un lead ya enviado se volviera a procesar (propuesta duplicada y estado sobrescrito). Se resolvió de dos maneras:
 
-### Nota sobre los links de la base
+1. **Guard anti-reprocesamiento** en el propio flujo: después de cualquier trigger se relee el lead en Airtable y solo continúa si su estado actual es *Pendiente*. Protege también a producción.
+2. **Webhook de prueba** (`POST /webhook/leads-vip-prueba` con `{ "lead_id": "rec..." }`): permite disparar el flujo sobre un lead puntual, sin depender de qué registro devuelva el trigger. Pasa por el mismo guard.
 
-Se dejan dos enlaces: el primero da acceso público de lectura a la base completa (las 3 tablas: Leads, Propuestas y Errores), y el segundo es la vista agrupada por Estado dentro de Leads, útil como cuadro de mando rápido.
+Las ejecuciones automáticas (poll cada 5 min) sí respetan el filtro, pero consumen la cuota de 50 ejecuciones/mes del plan gratuito de n8n Cloud.
 
 ## Dashboard de control
 
 Se construyó un panel real en Airtable Interfaces con números clave (Total de Leads, Leads VIP, Total de errores), un gráfico de distribución por Estado, y grillas de leads recientes y log de errores.
 
-**No se incluye como link público** porque compartir una Interface de Airtable fuera de la organización es una función del plan pago (Team, USD 24/mes) — el plan gratuito solo permite compartir vistas de tabla sueltas, no el dashboard completo. En su lugar, se deja como evidencia:
+**No se incluye como link público** porque compartir una Interface de Airtable fuera de la organización es una función del plan pago (Team, USD 24/mes) — el plan gratuito solo permite compartir vistas o la base en modo lectura, no el dashboard completo. En su lugar, se deja como evidencia (con los datos de esta corrida):
 
-- [`evidencia/dashboard_01_kpis_grafico.png`](evidencia/dashboard_01_kpis_grafico.png) — KPIs (Total de Leads, Leads VIP) + gráfico de distribución por Estado
-- [`evidencia/dashboard_02_errores.png`](evidencia/dashboard_02_errores.png) — Total de errores registrados + log de errores
+- [`evidencia/10_dashboard_kpis_grafico.jpg`](evidencia/10_dashboard_kpis_grafico.jpg) — KPIs (Total de Leads, Leads VIP) + gráfico de distribución por Estado
+- [`evidencia/10_dashboard_errores.jpg`](evidencia/10_dashboard_errores.jpg) — Total de errores registrados + log de errores
 
-(La vista pública de la sección "Enlaces" de arriba es el sustituto funcional sin costo: no tiene gráficos, pero sí números reales y filtro por Estado.)
+(El enlace público a la base de la sección "Enlaces" es el sustituto funcional sin costo: no tiene gráficos, pero sí los datos reales, la vista agrupada por Estado y las 3 tablas.)
 
 ## Aclaraciones de diseño
 
 - **Modelo de IA:** se usó Claude Haiku 4.5 (real, vía API propia de Anthropic) — no un sustituto gratuito — dado que la matriz de costos necesitaba números reales.
+- **Formato de la propuesta:** el prompt exige texto plano sin markdown, porque el email se envía como texto; en una versión anterior las negritas en markdown llegaban como `**asteriscos**` al cliente.
 - **Contador de reintentos:** la guarda anti-loop-infinito usa `$runIndex` (índice de corrida propio del nodo Filtro), no un conteo vía `$('Pausa').all().length` — ese método devuelve solo los ítems de la última corrida del nodo, no un histórico, y fue corregido tras detectarse en pruebas en vivo que el loop no cortaba al límite esperado.
+- **Datos frescos:** todos los nodos toman nombre, email e ID del lead desde "Releer Lead (Estado Actual)", no desde el payload del trigger, para trabajar siempre con el estado real del registro.
 - **Video demo:** no incluido en este repositorio (a grabar por separado, mostrando trigger → procesamiento → resultado, sin exponer credenciales).

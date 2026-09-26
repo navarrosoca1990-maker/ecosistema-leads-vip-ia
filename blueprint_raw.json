@@ -1,45 +1,314 @@
 {
-  "name": "Sistema de Leads VIP con Propuestas (HITL)",
+  "name": "Leads VIP - Propuestas con Aprobación (HITL) v2",
   "nodes": [
-    {"parameters":{"pollTimes":{"item":[{"mode":"everyX","value":5,"unit":"minutes"}]},"authentication":"airtableTokenApi","baseId":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ","cachedResultName":"Leads VIP - Sistema de Propuestas v2"},"tableId":{"__rl":true,"mode":"id","value":"tblCTDZ8pTm7xanGL","cachedResultName":"Leads"},"triggerField":"Last Modified","additionalFields":{"formula":"{Estado} = 'Pendiente'"}},"id":"d4c9ce07-c4b0-4f63-9ba0-d43159b65dcb","name":"Trigger: Nuevo Lead","type":"n8n-nodes-base.airtableTrigger","typeVersion":1,"position":[0,336],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
-    {"parameters":{"conditions":{"combinator":"and","options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":1},"conditions":[{"leftValue":"={{ $json.fields.Nombre }}","rightValue":"","operator":{"type":"string","operation":"notEmpty"}},{"leftValue":"={{ $json.fields.Email }}","rightValue":"","operator":{"type":"string","operation":"notEmpty"}},{"leftValue":"={{ $json.fields[\"Mensaje Original\"] }}","rightValue":"","operator":{"type":"string","operation":"notEmpty"}}]},"options":{}},"id":"a7526bab-0a0d-4496-8bd4-af645ff8650b","name":"Validar Datos Completos","type":"n8n-nodes-base.if","typeVersion":2.3,"position":[224,336]},
-    {"parameters":{"promptType":"define","text":"=Nombre: {{ $(\"Trigger: Nuevo Lead\").item.json.fields.Nombre }}\nEmpresa: {{ $(\"Trigger: Nuevo Lead\").item.json.fields.Empresa }}\nPresupuesto estimado: {{ $(\"Trigger: Nuevo Lead\").item.json.fields[\"Presupuesto Estimado\"] }}\nMensaje: {{ $(\"Trigger: Nuevo Lead\").item.json.fields[\"Mensaje Original\"] }}","hasOutputParser":true,"messages":{"messageValues":[{"message":"Sos el asistente comercial de Vertex Solutions, una consultora de automatizacion con IA para PyMEs.\n\nCatalogo de servicios y precios de referencia:\n- Automatizacion de procesos con IA: desde $1500 USD\n- Implementacion de chatbots: desde $800 USD\n- Consultoria de arquitectura de datos: desde $2000 USD/mes\n\nCriterios para marcar un lead como VIP (es_vip=true): presupuesto estimado mayor a $2000 USD, O el mensaje menciona urgencia/plazo ajustado, O menciona una empresa reconocida/gran volumen.\n\nAnaliza el mensaje del lead y devolve:\n- es_vip: true/false segun los criterios de arriba\n- score_confianza: numero de 0 a 100\n- propuesta: texto de propuesta comercial personalizada (150-250 palabras), profesional, mencionando el/los servicios del catalogo mas relevantes, tono cercano pero profesional, en espanol rioplatense. Nunca prometas plazos ni precios exactos sin contexto explicito del cliente, usa rangos de referencia."}]},"batching":{}},"id":"ea7e9479-a06c-4721-a8ed-473ea59a8b89","name":"Calificar y Redactar Propuesta","type":"@n8n/n8n-nodes-langchain.chainLlm","typeVersion":1.9,"position":[448,96],"onError":"continueErrorOutput"},
-    {"parameters":{"model":{"__rl":true,"mode":"id","value":"claude-haiku-4-5-20251001"},"options":{"maxTokensToSample":1024,"temperature":0.4}},"id":"959866b6-719d-40f0-a914-3ade8a36eaed","name":"Claude Haiku Model","type":"@n8n/n8n-nodes-langchain.lmChatAnthropic","typeVersion":1.6,"position":[464,320],"credentials":{"anthropicApi":{"id":"xKzaNcZTXlg1u2u9","name":"Anthropic account"}}},
-    {"parameters":{"jsonSchemaExample":"{\"es_vip\":true,\"score_confianza\":85,\"propuesta\":\"Texto de la propuesta comercial personalizada...\"}"},"id":"c99de687-cfe7-4d96-ac78-8a32094ac6a6","name":"Parser Salida Estructurada","type":"@n8n/n8n-nodes-langchain.outputParserStructured","typeVersion":1.3,"position":[592,320]},
-    {"parameters":{"operation":"create","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tbl2KQFlTDZcH5Rhi"},"columns":{"mappingMode":"defineBelow","value":{"Titulo":"=Propuesta - {{ $(\"Trigger: Nuevo Lead\").item.json.fields.Nombre }}","Contenido Propuesta":"={{ $json.output.propuesta }}","Leads":"={{ [$(\"Trigger: Nuevo Lead\").item.json.id] }}"},"schema":[]},"options":{}},"id":"2f56e6ab-090e-4c2d-9eb2-015f69d8d136","name":"Guardar Propuesta","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[800,96],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
-    {"parameters":{"operation":"update","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tblCTDZ8pTm7xanGL"},"columns":{"mappingMode":"defineBelow","matchingColumns":["id"],"value":{"id":"={{ $(\"Trigger: Nuevo Lead\").item.json.id }}","Estado":"Procesado por IA","Es VIP":"={{ $(\"Calificar y Redactar Propuesta\").item.json.output.es_vip }}","Fecha Ultima Ejecucion":"={{ $now.toISO() }}"},"schema":[]},"options":{}},"id":"9da04e65-0b58-46f8-ba07-dc4510c689f9","name":"Actualizar Lead: Procesado por IA","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[1024,96],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
-    {"parameters":{"authentication":"oAuth2","select":"channel","channelId":{"__rl":true,"mode":"id","value":"C0BS091GYQJ","cachedResultName":"general-nicolasnavarro"},"text":"=📋 Nueva propuesta lista para revisar\nLead: {{ $(\"Trigger: Nuevo Lead\").item.json.fields.Nombre }} ({{ $(\"Trigger: Nuevo Lead\").item.json.fields.Empresa }})\nVIP: {{ $(\"Calificar y Redactar Propuesta\").item.json.output.es_vip }}\nConfianza IA: {{ $(\"Calificar y Redactar Propuesta\").item.json.output.score_confianza }}%\n\nPropuesta:\n{{ $(\"Calificar y Redactar Propuesta\").item.json.output.propuesta }}\n\n👉 Aprobá tildando \"Aprobado\" en la tabla Propuestas de Airtable.","otherOptions":{}},"id":"a8a8a3dc-9924-464e-ae50-f93ea4a9d6ce","name":"Notificar Equipo (Slack)","type":"n8n-nodes-base.slack","typeVersion":2.7,"position":[1248,96],"credentials":{"slackOAuth2Api":{"id":"WaBhX66iE6jsIQSR","name":"Slack account"}}},
-    {"parameters":{"amount":1,"unit":"minutes"},"id":"04d4ed31-7b4a-4195-82f4-741174aa7a4f","name":"Pausa: Esperar Aprobación","type":"n8n-nodes-base.wait","typeVersion":1.1,"position":[1472,96]},
-    {"parameters":{"base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tbl2KQFlTDZcH5Rhi"},"id":"={{ $(\"Guardar Propuesta\").item.json.id }}","options":{}},"id":"010b1740-88f2-4445-9e7d-df0cd0358cb6","name":"Releer Propuesta","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[1696,96],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
-    {"parameters":{"conditions":{"combinator":"and","options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":1},"conditions":[{"leftValue":"={{ $json.fields.Aprobado }}","rightValue":true,"operator":{"type":"boolean","operation":"true"}}]},"options":{}},"id":"98f5a6ad-2b4d-4163-b227-c969fd1930b9","name":"Filtro: ¿Aprobado?","type":"n8n-nodes-base.if","typeVersion":2.3,"position":[1920,96]},
-    {"parameters":{"sendTo":"={{ $(\"Trigger: Nuevo Lead\").item.json.fields.Email }}","subject":"Propuesta comercial personalizada - Vertex Solutions","emailType":"text","message":"={{ $(\"Calificar y Redactar Propuesta\").item.json.output.propuesta }}","options":{}},"id":"ecf1005f-b55a-478c-b1af-c3761e173085","name":"Enviar Propuesta (Gmail)","type":"n8n-nodes-base.gmail","typeVersion":2.2,"position":[2144,0],"credentials":{"gmailOAuth2":{"id":"NvrQskjtf55jA0mN","name":"Gmail account"}}},
-    {"parameters":{"operation":"update","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tblCTDZ8pTm7xanGL"},"columns":{"mappingMode":"defineBelow","matchingColumns":["id"],"value":{"id":"={{ $(\"Trigger: Nuevo Lead\").item.json.id }}","Estado":"Enviado","Message-ID":"={{ $json.threadId }}"},"schema":[]},"options":{}},"id":"a87797a2-2a7a-42d6-b6b8-8f07e165f54f","name":"Guardar Thread ID y Marcar Enviado","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[2368,0],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
-    {"parameters":{"operation":"update","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tbl2KQFlTDZcH5Rhi"},"columns":{"mappingMode":"defineBelow","matchingColumns":["id"],"value":{"id":"={{ $(\"Guardar Propuesta\").item.json.id }}","Fecha Envio":"={{ $now.toISO() }}"},"schema":[]},"options":{}},"id":"36967cee-97fb-4983-8270-9c87488fdaab","name":"Marcar Propuesta: Fecha Envío","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[2592,0],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
-    {"parameters":{"conditions":{"combinator":"and","options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":1},"conditions":[{"leftValue":"={{ $runIndex }}","rightValue":4,"operator":{"type":"number","operation":"gte"}}]},"options":{}},"id":"f857155d-fba3-4ced-a591-979add2da50d","name":"Filtro: ¿Excedió Intentos?","type":"n8n-nodes-base.if","typeVersion":2.3,"position":[2144,192]},
-    {"parameters":{"operation":"update","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tblCTDZ8pTm7xanGL"},"columns":{"mappingMode":"defineBelow","matchingColumns":["id"],"value":{"id":"={{ $(\"Trigger: Nuevo Lead\").item.json.id }}","Estado":"Rechazado"},"schema":[]},"options":{}},"id":"cbee86d9-3e4b-4495-80c5-fca41441bb69","name":"Marcar Lead: Rechazado (Timeout)","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[2368,192],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
-    {"parameters":{"operation":"create","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tbl0VoUaT6LrZmwpV"},"columns":{"mappingMode":"defineBelow","value":{"Descripcion Error":"Se agoto el tiempo de espera de aprobacion humana (HITL) sin respuesta","Detalle Tecnico":"Se alcanzaron 5 ciclos de espera sin que el checkbox Aprobado pasara a true","Fecha":"={{ $now.toISO() }}","Leads":"={{ [$(\"Trigger: Nuevo Lead\").item.json.id] }}"},"schema":[]},"options":{}},"id":"dc7d4857-7a84-4103-9a88-a9deb93cd41e","name":"Registrar Timeout HITL","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[2592,192],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
-    {"parameters":{"operation":"create","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tbl0VoUaT6LrZmwpV"},"columns":{"mappingMode":"defineBelow","value":{"Descripcion Error":"Fallo la llamada a la API de Claude al calificar/redactar la propuesta","Detalle Tecnico":"={{ $json.error ?? JSON.stringify($json) }}","Fecha":"={{ $now.toISO() }}","Leads":"={{ [$(\"Trigger: Nuevo Lead\").item.json.id] }}"},"schema":[]},"options":{}},"id":"ba174686-64f3-4462-a4e9-f285c0c29324","name":"Registrar Error de IA","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[800,288],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
-    {"parameters":{"operation":"update","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tblCTDZ8pTm7xanGL"},"columns":{"mappingMode":"defineBelow","matchingColumns":["id"],"value":{"id":"={{ $(\"Trigger: Nuevo Lead\").item.json.id }}","Estado":"Error"},"schema":[]},"options":{}},"id":"c7ee4d92-b728-4bb1-b73b-1c2387bd70df","name":"Marcar Lead en Error (IA)","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[1024,288],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
-    {"parameters":{"operation":"create","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tbl0VoUaT6LrZmwpV"},"columns":{"mappingMode":"defineBelow","value":{"Descripcion Error":"Datos incompletos: faltan campos obligatorios (Nombre, Email o Mensaje Original)","Detalle Tecnico":"={{ JSON.stringify($json.fields) }}","Fecha":"={{ $now.toISO() }}","Leads":"={{ [$json.id] }}"},"schema":[]},"options":{}},"id":"9b389774-0032-42bc-bf49-e21acd55968e","name":"Registrar Datos Incompletos","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[512,528],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
-    {"parameters":{"operation":"update","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tblCTDZ8pTm7xanGL"},"columns":{"mappingMode":"defineBelow","matchingColumns":["id"],"value":{"id":"={{ $(\"Trigger: Nuevo Lead\").item.json.id }}","Estado":"Error"},"schema":[]},"options":{}},"id":"0e9cddf8-9dea-415f-ac6e-6506e9236450","name":"Marcar Lead en Error (Datos)","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[800,528],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}}
+    {"parameters":{"pollTimes":{"item":[{"mode":"everyX","value":5,"unit":"minutes"}]},"authentication":"airtableTokenApi","baseId":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"tableId":{"__rl":true,"mode":"id","value":"tblCTDZ8pTm7xanGL"},"triggerField":"Last Modified","additionalFields":{"formula":"{Estado} = 'Pendiente'"}},"id":"5fe8c8dc-f65b-48bd-b9d9-5a9ac786d4f1","name":"Trigger: Nuevo Lead (Airtable)","type":"n8n-nodes-base.airtableTrigger","typeVersion":1,"position":[0,208],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
+    {"parameters":{"httpMethod":"POST","path":"leads-vip-prueba","options":{}},"id":"8cd32011-367d-4d82-9e4e-9d18c39dbcf4","name":"Prueba: Webhook (lead_id)","type":"n8n-nodes-base.webhook","typeVersion":2.1,"position":[0,432],"webhookId":"3bad2cf3-da23-432c-956b-85ff3b435251"},
+    {"parameters":{"assignments":{"assignments":[{"id":"lead-id","name":"lead_id","value":"={{ $json.body?.lead_id ?? $json.id }}","type":"string"}]},"options":{}},"id":"8d7e0bf5-8b60-47bf-890d-dd751941b8c5","name":"Normalizar ID Lead","type":"n8n-nodes-base.set","typeVersion":3.4,"position":[224,304]},
+    {"parameters":{"base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tblCTDZ8pTm7xanGL"},"id":"={{ $json.lead_id }}","options":{}},"id":"4dd45ae2-bc31-4494-92e5-c36f997e33a0","name":"Releer Lead (Estado Actual)","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[448,304],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
+    {"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"loose","version":1},"conditions":[{"leftValue":"={{ $json.fields.Estado }}","rightValue":"Pendiente","operator":{"type":"string","operation":"equals"}}],"combinator":"and"},"options":{}},"id":"e87a6362-70c1-40da-a11b-5cbc5d593c28","name":"Guard: ¿Sigue Pendiente?","type":"n8n-nodes-base.if","typeVersion":2.3,"position":[672,304]},
+    {"parameters":{},"id":"c6c65c46-b2ac-44f6-a131-6830567d9b31","name":"Omitir: Lead Ya Procesado","type":"n8n-nodes-base.noOp","typeVersion":1,"position":[896,480]},
+    {"parameters":{"assignments":{"assignments":[{"id":"faltantes","name":"faltantes","value":"={{ [\"Nombre\", \"Email\", \"Mensaje Original\"].filter(c => !String($json.fields[c] ?? \"\").trim()) }}","type":"array"}]},"includeOtherFields":true,"options":{}},"id":"4d0c385a-5819-4b37-b7ad-df13eb9aee5c","name":"Detectar Campos Faltantes","type":"n8n-nodes-base.set","typeVersion":3.4,"position":[896,208]},
+    {"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"loose","version":1},"conditions":[{"leftValue":"={{ $json.faltantes.length }}","rightValue":0,"operator":{"type":"number","operation":"equals"}}],"combinator":"and"},"options":{}},"id":"675be7f7-0c8f-437c-a369-fd85b0889e36","name":"Validar Datos Completos","type":"n8n-nodes-base.if","typeVersion":2.3,"position":[1120,208]},
+    {"parameters":{"operation":"create","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tbl0VoUaT6LrZmwpV"},"columns":{"mappingMode":"defineBelow","value":{"Descripcion Error":"=Datos incompletos: falta {{ $json.faltantes.join(\", \") }}","Detalle Tecnico":"={{ JSON.stringify({ faltantes: $json.faltantes, fields: $json.fields }) }}","Fecha":"={{ $now.toISO() }}","Leads":"={{ [$(\"Releer Lead (Estado Actual)\").item.json.id] }}"},"schema":[]},"options":{}},"id":"7e5cbbf7-7c30-4473-91c8-0e1ea7728bb5","name":"Registrar Datos Incompletos","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[1344,592],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
+    {"parameters":{"operation":"update","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tblCTDZ8pTm7xanGL"},"columns":{"mappingMode":"defineBelow","matchingColumns":["id"],"value":{"id":"={{ $(\"Releer Lead (Estado Actual)\").item.json.id }}","Estado":"Error","Fecha Ultima Ejecucion":"={{ $now.toISO() }}"},"schema":[]},"options":{}},"id":"ff0b85f0-12f5-473b-b1cb-7c43bf5a5628","name":"Marcar Lead en Error (Datos)","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[1568,592],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
+    {"parameters":{"promptType":"define","text":"=Nombre: {{ $(\"Releer Lead (Estado Actual)\").item.json.fields.Nombre }}\nEmpresa: {{ $(\"Releer Lead (Estado Actual)\").item.json.fields.Empresa }}\nPresupuesto estimado: {{ $(\"Releer Lead (Estado Actual)\").item.json.fields[\"Presupuesto Estimado\"] }}\nMensaje: {{ $(\"Releer Lead (Estado Actual)\").item.json.fields[\"Mensaje Original\"] }}","hasOutputParser":true,"messages":{"messageValues":[{"message":"Sos el asistente comercial de Vertex Solutions, una consultora de automatizacion con IA para PyMEs.\n\nCatalogo de servicios y precios de referencia:\n- Automatizacion de procesos con IA: desde $1500 USD\n- Implementacion de chatbots: desde $800 USD\n- Consultoria de arquitectura de datos: desde $2000 USD/mes\n\nCriterios para marcar un lead como VIP (es_vip=true): presupuesto estimado mayor a $2000 USD, O el mensaje menciona urgencia/plazo ajustado, O menciona una empresa reconocida/gran volumen.\n\nAnaliza el mensaje del lead y devolve:\n- es_vip: true/false segun los criterios de arriba\n- score_confianza: numero de 0 a 100\n- propuesta: texto de propuesta comercial personalizada (150-250 palabras), profesional, mencionando el/los servicios del catalogo mas relevantes, tono cercano pero profesional, en espanol rioplatense. Nunca prometas plazos ni precios exactos sin contexto explicito del cliente, usa rangos de referencia.\n\nFormato de la propuesta: se envia por email en TEXTO PLANO. No uses markdown ni ningun formato: nada de asteriscos, negritas, cursivas, numerales, vinetas ni encabezados. Escribi parrafos corridos separados por una linea en blanco y nombra los servicios tal cual, sin resaltarlos."}]},"batching":{}},"id":"84776a05-e902-4fea-8769-bd360594b1b0","name":"Calificar y Redactar Propuesta","type":"@n8n/n8n-nodes-langchain.chainLlm","typeVersion":1.9,"position":[1344,112],"onError":"continueErrorOutput"},
+    {"parameters":{"model":{"__rl":true,"mode":"id","value":"claude-haiku-4-5-20251001"},"options":{"maxTokensToSample":1024,"temperature":0.4}},"id":"189faf40-517c-4a7d-8216-13d2f84fba5e","name":"Claude Haiku Model","type":"@n8n/n8n-nodes-langchain.lmChatAnthropic","typeVersion":1.6,"position":[1312,368],"credentials":{"anthropicApi":{"id":"xKzaNcZTXlg1u2u9","name":"Anthropic account"}}},
+    {"parameters":{"jsonSchemaExample":"{\"es_vip\":true,\"score_confianza\":85,\"propuesta\":\"Texto de la propuesta comercial personalizada...\"}"},"id":"1b7b05cd-d6de-44f4-975b-7b16eb5ad166","name":"Parser Salida Estructurada","type":"@n8n/n8n-nodes-langchain.outputParserStructured","typeVersion":1.3,"position":[1440,368]},
+    {"parameters":{"operation":"create","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tbl0VoUaT6LrZmwpV"},"columns":{"mappingMode":"defineBelow","value":{"Descripcion Error":"Fallo la llamada a la API de Claude al calificar/redactar la propuesta","Detalle Tecnico":"={{ $json.error ?? JSON.stringify($json) }}","Fecha":"={{ $now.toISO() }}","Leads":"={{ [$(\"Releer Lead (Estado Actual)\").item.json.id] }}"},"schema":[]},"options":{}},"id":"fe7d2115-4ba6-4c89-97da-537fef55eec0","name":"Registrar Error de IA","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[1680,320],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
+    {"parameters":{"operation":"update","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tblCTDZ8pTm7xanGL"},"columns":{"mappingMode":"defineBelow","matchingColumns":["id"],"value":{"id":"={{ $(\"Releer Lead (Estado Actual)\").item.json.id }}","Estado":"Error","Fecha Ultima Ejecucion":"={{ $now.toISO() }}"},"schema":[]},"options":{}},"id":"f2bc2e6f-8672-4385-bf7d-62e5c4037812","name":"Marcar Lead en Error (IA)","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[1904,320],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
+    {"parameters":{"operation":"create","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tbl2KQFlTDZcH5Rhi"},"columns":{"mappingMode":"defineBelow","value":{"Titulo":"=Propuesta - {{ $(\"Releer Lead (Estado Actual)\").item.json.fields.Nombre }}","Contenido Propuesta":"={{ $json.output.propuesta }}","Leads":"={{ [$(\"Releer Lead (Estado Actual)\").item.json.id] }}"},"schema":[]},"options":{}},"id":"78f7fcd6-5dc6-4f3e-a4a2-a03f5c4b9daf","name":"Guardar Propuesta","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[1680,112],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
+    {"parameters":{"operation":"update","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tblCTDZ8pTm7xanGL"},"columns":{"mappingMode":"defineBelow","matchingColumns":["id"],"value":{"id":"={{ $(\"Releer Lead (Estado Actual)\").item.json.id }}","Estado":"Procesado por IA","Es VIP":"={{ $(\"Calificar y Redactar Propuesta\").item.json.output.es_vip }}","Fecha Ultima Ejecucion":"={{ $now.toISO() }}"},"schema":[]},"options":{}},"id":"f1abf2a5-afe6-4eae-82d7-0d9236a3ee32","name":"Actualizar Lead: Procesado por IA","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[1904,112],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
+    {"parameters":{"authentication":"oAuth2","select":"channel","channelId":{"__rl":true,"mode":"id","value":"C0BS091GYQJ","cachedResultName":"general-nicolasnavarro"},"text":"=📋 Nueva propuesta lista para revisar\nLead: {{ $(\"Releer Lead (Estado Actual)\").item.json.fields.Nombre }} ({{ $(\"Releer Lead (Estado Actual)\").item.json.fields.Empresa }})\nVIP: {{ $(\"Calificar y Redactar Propuesta\").item.json.output.es_vip ? \"Sí\" : \"No\" }}\nConfianza IA: {{ $(\"Calificar y Redactar Propuesta\").item.json.output.score_confianza }}%\n\nPropuesta:\n{{ $(\"Calificar y Redactar Propuesta\").item.json.output.propuesta }}\n\n👉 Aprobá tildando \"Aprobado\" en la tabla Propuestas de Airtable (tenés 5 minutos).","otherOptions":{}},"id":"bd482f4d-6b98-48a0-8085-a78894188fd5","name":"Notificar Equipo (Slack)","type":"n8n-nodes-base.slack","typeVersion":2.7,"position":[2128,112],"webhookId":"75f66d72-8663-44c7-952e-ccdd1256e9b4","credentials":{"slackOAuth2Api":{"id":"WaBhX66iE6jsIQSR","name":"Slack account"}}},
+    {"parameters":{"amount":1,"unit":"minutes"},"id":"b39da7e9-41d4-421e-909c-ab40233a0423","name":"Pausa: Esperar Aprobación","type":"n8n-nodes-base.wait","typeVersion":1.1,"position":[2352,112],"webhookId":"df94f100-fd7f-4b7f-b2b6-d763f23766af"},
+    {"parameters":{"base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tbl2KQFlTDZcH5Rhi"},"id":"={{ $(\"Guardar Propuesta\").item.json.id }}","options":{}},"id":"ade0f5aa-2f93-4a3c-9ceb-a8da31646a31","name":"Releer Propuesta","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[2576,112],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
+    {"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"loose","version":1},"conditions":[{"leftValue":"={{ $json.fields.Aprobado === true }}","rightValue":true,"operator":{"type":"boolean","operation":"true","singleValue":true}}],"combinator":"and"},"options":{}},"id":"cff2c7ff-9ba9-48a2-9cc8-c3f86ff1219f","name":"Filtro: ¿Aprobado?","type":"n8n-nodes-base.if","typeVersion":2.3,"position":[2800,112]},
+    {"parameters":{"sendTo":"={{ $(\"Releer Lead (Estado Actual)\").item.json.fields.Email }}","subject":"Propuesta comercial personalizada - Vertex Solutions","emailType":"text","message":"={{ $(\"Calificar y Redactar Propuesta\").item.json.output.propuesta }}","options":{"appendAttribution":false}},"id":"48013111-a396-4f6a-8723-478c2e09c084","name":"Enviar Propuesta (Gmail)","type":"n8n-nodes-base.gmail","typeVersion":2.2,"position":[3024,0],"webhookId":"7f5d74ec-023b-4f15-8ec8-7c56a7cac77e","credentials":{"gmailOAuth2":{"id":"NvrQskjtf55jA0mN","name":"Gmail account"}}},
+    {"parameters":{"operation":"update","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tblCTDZ8pTm7xanGL"},"columns":{"mappingMode":"defineBelow","matchingColumns":["id"],"value":{"id":"={{ $(\"Releer Lead (Estado Actual)\").item.json.id }}","Estado":"Enviado","Message-ID":"={{ $json.threadId }}","Fecha Ultima Ejecucion":"={{ $now.toISO() }}"},"schema":[]},"options":{}},"id":"0b1e61e5-fd8b-4583-8367-91173efdbf3d","name":"Guardar Thread ID y Marcar Enviado","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[3248,0],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
+    {"parameters":{"operation":"update","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tbl2KQFlTDZcH5Rhi"},"columns":{"mappingMode":"defineBelow","matchingColumns":["id"],"value":{"id":"={{ $(\"Guardar Propuesta\").item.json.id }}","Fecha Envio":"={{ $now.toISO() }}"},"schema":[]},"options":{}},"id":"41f544aa-2d64-46a1-b145-d1b765de7d55","name":"Marcar Propuesta: Fecha Envío","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[3472,0],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
+    {"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":1},"conditions":[{"leftValue":"={{ $runIndex }}","rightValue":4,"operator":{"type":"number","operation":"gte"}}],"combinator":"and"},"options":{}},"id":"4841f951-bfe9-4c72-a832-86cca05f900c","name":"Filtro: ¿Excedió Intentos?","type":"n8n-nodes-base.if","typeVersion":2.3,"position":[3024,272]},
+    {"parameters":{"operation":"update","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tblCTDZ8pTm7xanGL"},"columns":{"mappingMode":"defineBelow","matchingColumns":["id"],"value":{"id":"={{ $(\"Releer Lead (Estado Actual)\").item.json.id }}","Estado":"Rechazado","Fecha Ultima Ejecucion":"={{ $now.toISO() }}"},"schema":[]},"options":{}},"id":"8377940e-0460-440e-9fca-e8359b0e7552","name":"Marcar Lead: Rechazado (Timeout)","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[3248,272],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
+    {"parameters":{"operation":"create","base":{"__rl":true,"mode":"id","value":"app9d9WVwEBaTXKlJ"},"table":{"__rl":true,"mode":"id","value":"tbl0VoUaT6LrZmwpV"},"columns":{"mappingMode":"defineBelow","value":{"Descripcion Error":"Se agoto el tiempo de espera de aprobacion humana (HITL) sin respuesta","Detalle Tecnico":"Se alcanzaron 5 ciclos de espera de 1 minuto sin que el checkbox Aprobado pasara a true","Fecha":"={{ $now.toISO() }}","Leads":"={{ [$(\"Releer Lead (Estado Actual)\").item.json.id] }}"},"schema":[]},"options":{}},"id":"96823d21-012f-4fef-8366-ffd4743a1afb","name":"Registrar Timeout HITL","type":"n8n-nodes-base.airtable","typeVersion":2.2,"position":[3472,272],"credentials":{"airtableTokenApi":{"id":"YNNJkmP6JZp0wZO7","name":"Airtable Personal Access Token account"}}},
+    {"parameters":{"content":"## Sistema de Leads VIP (HITL)\nAirtable (Estado = Pendiente) → relee el lead → guard anti-reprocesamiento → valida campos → Claude califica y redacta → guarda propuesta → Slack → espera aprobación humana (5 × 1 min) → Gmail o Rechazado por timeout.\n\nSolo se procesan leads en **Pendiente**. Enviado / Rechazado / Procesado por IA / Error se omiten.","height":272,"width":400,"color":7},"id":"124b7ea8-5cbd-40a5-b0b5-03ac83477078","name":"Sticky Note cb22570e","type":"n8n-nodes-base.stickyNote","typeVersion":1,"position":[-128,-112]},
+    {"parameters":{"content":"### Pruebas\nPOST al webhook **leads-vip-prueba** con `{ \"lead_id\": \"recXXXX\" }` para procesar un lead puntual. Pasa por el mismo guard, así que solo corre si el lead está en Pendiente.","color":5},"id":"4cf42d85-b089-4143-93d9-9134bbf38f5e","name":"Sticky Note 5bc92976","type":"n8n-nodes-base.stickyNote","typeVersion":1,"position":[0,592]}
   ],
   "connections": {
-    "Trigger: Nuevo Lead": {"main": [[{"node": "Validar Datos Completos", "type": "main", "index": 0}]]},
-    "Validar Datos Completos": {"main": [[{"node": "Calificar y Redactar Propuesta", "type": "main", "index": 0}], [{"node": "Registrar Datos Incompletos", "type": "main", "index": 0}]]},
-    "Calificar y Redactar Propuesta": {"main": [[{"node": "Guardar Propuesta", "type": "main", "index": 0}], [{"node": "Registrar Error de IA", "type": "main", "index": 0}]]},
-    "Claude Haiku Model": {"ai_languageModel": [[{"node": "Calificar y Redactar Propuesta", "type": "ai_languageModel", "index": 0}]]},
-    "Parser Salida Estructurada": {"ai_outputParser": [[{"node": "Calificar y Redactar Propuesta", "type": "ai_outputParser", "index": 0}]]},
-    "Guardar Propuesta": {"main": [[{"node": "Actualizar Lead: Procesado por IA", "type": "main", "index": 0}]]},
-    "Actualizar Lead: Procesado por IA": {"main": [[{"node": "Notificar Equipo (Slack)", "type": "main", "index": 0}]]},
-    "Notificar Equipo (Slack)": {"main": [[{"node": "Pausa: Esperar Aprobación", "type": "main", "index": 0}]]},
-    "Pausa: Esperar Aprobación": {"main": [[{"node": "Releer Propuesta", "type": "main", "index": 0}]]},
-    "Releer Propuesta": {"main": [[{"node": "Filtro: ¿Aprobado?", "type": "main", "index": 0}]]},
-    "Filtro: ¿Aprobado?": {"main": [[{"node": "Enviar Propuesta (Gmail)", "type": "main", "index": 0}], [{"node": "Filtro: ¿Excedió Intentos?", "type": "main", "index": 0}]]},
-    "Enviar Propuesta (Gmail)": {"main": [[{"node": "Guardar Thread ID y Marcar Enviado", "type": "main", "index": 0}]]},
-    "Guardar Thread ID y Marcar Enviado": {"main": [[{"node": "Marcar Propuesta: Fecha Envío", "type": "main", "index": 0}]]},
-    "Filtro: ¿Excedió Intentos?": {"main": [[{"node": "Marcar Lead: Rechazado (Timeout)", "type": "main", "index": 0}], [{"node": "Pausa: Esperar Aprobación", "type": "main", "index": 0}]]},
-    "Marcar Lead: Rechazado (Timeout)": {"main": [[{"node": "Registrar Timeout HITL", "type": "main", "index": 0}]]},
-    "Registrar Error de IA": {"main": [[{"node": "Marcar Lead en Error (IA)", "type": "main", "index": 0}]]},
-    "Registrar Datos Incompletos": {"main": [[{"node": "Marcar Lead en Error (Datos)", "type": "main", "index": 0}]]}
-  }
+    "Trigger: Nuevo Lead (Airtable)": {
+      "main": [
+        [
+          {
+            "node": "Normalizar ID Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prueba: Webhook (lead_id)": {
+      "main": [
+        [
+          {
+            "node": "Normalizar ID Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar ID Lead": {
+      "main": [
+        [
+          {
+            "node": "Releer Lead (Estado Actual)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Releer Lead (Estado Actual)": {
+      "main": [
+        [
+          {
+            "node": "Guard: ¿Sigue Pendiente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard: ¿Sigue Pendiente?": {
+      "main": [
+        [
+          {
+            "node": "Detectar Campos Faltantes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Omitir: Lead Ya Procesado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar Campos Faltantes": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos Completos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos Completos": {
+      "main": [
+        [
+          {
+            "node": "Calificar y Redactar Propuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar Datos Incompletos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Datos Incompletos": {
+      "main": [
+        [
+          {
+            "node": "Marcar Lead en Error (Datos)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Haiku Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Calificar y Redactar Propuesta",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser Salida Estructurada": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Calificar y Redactar Propuesta",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calificar y Redactar Propuesta": {
+      "main": [
+        [
+          {
+            "node": "Guardar Propuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar Error de IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Error de IA": {
+      "main": [
+        [
+          {
+            "node": "Marcar Lead en Error (IA)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Propuesta": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Lead: Procesado por IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Lead: Procesado por IA": {
+      "main": [
+        [
+          {
+            "node": "Notificar Equipo (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar Equipo (Slack)": {
+      "main": [
+        [
+          {
+            "node": "Pausa: Esperar Aprobación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pausa: Esperar Aprobación": {
+      "main": [
+        [
+          {
+            "node": "Releer Propuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Releer Propuesta": {
+      "main": [
+        [
+          {
+            "node": "Filtro: ¿Aprobado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro: ¿Aprobado?": {
+      "main": [
+        [
+          {
+            "node": "Enviar Propuesta (Gmail)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Filtro: ¿Excedió Intentos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Propuesta (Gmail)": {
+      "main": [
+        [
+          {
+            "node": "Guardar Thread ID y Marcar Enviado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Thread ID y Marcar Enviado": {
+      "main": [
+        [
+          {
+            "node": "Marcar Propuesta: Fecha Envío",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro: ¿Excedió Intentos?": {
+      "main": [
+        [
+          {
+            "node": "Marcar Lead: Rechazado (Timeout)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pausa: Esperar Aprobación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar Lead: Rechazado (Timeout)": {
+      "main": [
+        [
+          {
+            "node": "Registrar Timeout HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {"executionOrder": "v1"}
 }
