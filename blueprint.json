@@ -3,32 +3,149 @@
   "platform": "n8n",
   "workflowId": "qmwyzxEDlq4O8Y6H",
   "workflowUrl": "https://nnavarro2890.app.n8n.cloud/workflow/qmwyzxEDlq4O8Y6H",
-  "nodeCount": 29,
-  "nodeCountNote": "27 nodos funcionales + 2 notas (sticky notes)",
+  "nodeCount": 33,
+  "nodeCountNote": "31 nodos funcionales + 2 notas (sticky notes)",
   "flow": [
-    { "name": "Trigger: Nuevo Lead (Airtable)", "type": "n8n-nodes-base.airtableTrigger", "note": "Poll cada 5 min, formula {Estado}='Pendiente', triggerField=Last Modified (produccion)" },
-    { "name": "Prueba: Webhook (lead_id)", "type": "n8n-nodes-base.webhook", "note": "POST /webhook/leads-vip-prueba con { lead_id }: procesa un lead puntual para pruebas; pasa por el mismo guard" },
-    { "name": "Normalizar ID Lead", "type": "n8n-nodes-base.set", "note": "lead_id = body.lead_id (webhook) o id (trigger)" },
-    { "name": "Releer Lead (Estado Actual)", "type": "n8n-nodes-base.airtable", "operation": "get", "note": "Lee el estado ACTUAL del lead, no el payload del trigger. Todos los nodos siguientes leen de aca" },
-    { "name": "Guard: ¿Sigue Pendiente?", "type": "n8n-nodes-base.if", "condition": "Estado == 'Pendiente'", "note": "Anti-reprocesamiento: Enviado / Rechazado / Procesado por IA / Error se omiten" },
-    { "name": "Omitir: Lead Ya Procesado", "type": "n8n-nodes-base.noOp", "branch": "Guard = FALSE" },
-    { "name": "Detectar Campos Faltantes", "type": "n8n-nodes-base.set", "note": "faltantes = campos vacios entre Nombre, Email y Mensaje Original" },
-    { "name": "Validar Datos Completos", "type": "n8n-nodes-base.if", "condition": "faltantes.length == 0" },
-    { "name": "Registrar Datos Incompletos -> Marcar Lead en Error (Datos)", "type": "n8n-nodes-base.airtable", "branch": "Validar Datos Completos = FALSE", "note": "El error indica exactamente que campos faltan" },
-    { "name": "Claude Haiku Model", "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic", "model": "claude-haiku-4-5-20251001", "maxTokensToSample": 1024, "temperature": 0.4 },
-    { "name": "Parser Salida Estructurada", "type": "@n8n/n8n-nodes-langchain.outputParserStructured", "schema": "{ es_vip: boolean, score_confianza: number, propuesta: string }" },
-    { "name": "Calificar y Redactar Propuesta", "type": "@n8n/n8n-nodes-langchain.chainLlm", "onError": "continueErrorOutput", "note": "Propuesta en texto plano (sin markdown) porque se envia como email de texto" },
-    { "name": "Registrar Error de IA -> Marcar Lead en Error (IA)", "type": "n8n-nodes-base.airtable", "branch": "Calificar y Redactar Propuesta = error" },
-    { "name": "Guardar Propuesta", "type": "n8n-nodes-base.airtable", "note": "create en tabla Propuestas, vinculado a Leads" },
-    { "name": "Actualizar Lead: Procesado por IA", "type": "n8n-nodes-base.airtable" },
-    { "name": "Notificar Equipo (Slack)", "type": "n8n-nodes-base.slack" },
-    { "name": "Pausa: Esperar Aprobación", "type": "n8n-nodes-base.wait", "resume": "timeInterval", "amount": 1, "unit": "minutes", "note": "Nodo HITL" },
-    { "name": "Releer Propuesta", "type": "n8n-nodes-base.airtable", "note": "get, re-lee el checkbox Aprobado" },
-    { "name": "Filtro: ¿Aprobado?", "type": "n8n-nodes-base.if" },
-    { "name": "Filtro: ¿Excedió Intentos?", "type": "n8n-nodes-base.if", "condition": "$runIndex >= 4", "note": "Limite anti-loop-infinito, corta a las 5 corridas" },
-    { "name": "Marcar Lead: Rechazado (Timeout) -> Registrar Timeout HITL", "type": "n8n-nodes-base.airtable", "branch": "Excedió Intentos = TRUE" },
-    { "name": "Enviar Propuesta (Gmail)", "type": "n8n-nodes-base.gmail", "operation": "send", "note": "texto plano, sin firma de n8n; guarda threadId devuelto" },
-    { "name": "Guardar Thread ID y Marcar Enviado -> Marcar Propuesta: Fecha Envío", "type": "n8n-nodes-base.airtable" }
+    {
+      "name": "Trigger: Nuevo Lead (Airtable)",
+      "type": "n8n-nodes-base.airtableTrigger",
+      "note": "Poll cada 5 min, formula {Estado}='Pendiente', triggerField=Last Modified (producción)"
+    },
+    {
+      "name": "Prueba: Webhook (lead_id)",
+      "type": "n8n-nodes-base.webhook",
+      "note": "POST /webhook/leads-vip-prueba con { lead_id }: procesa un lead puntual para pruebas; pasa por el mismo guard"
+    },
+    {
+      "name": "Normalizar ID Lead",
+      "type": "n8n-nodes-base.set",
+      "note": "lead_id = body.lead_id (webhook) o id (trigger)"
+    },
+    {
+      "name": "Releer Lead (Estado Actual)",
+      "type": "n8n-nodes-base.airtable",
+      "operation": "get",
+      "note": "Lee el estado ACTUAL del lead, no el payload del trigger. Todos los nodos siguientes leen de acá"
+    },
+    {
+      "name": "Guard: ¿Sigue Pendiente?",
+      "type": "n8n-nodes-base.if",
+      "condition": "Estado == 'Pendiente'",
+      "note": "Anti-reprocesamiento: cualquier otro estado (Procesado por IA, Aprobado por Humano, Enviado, Rechazado, Error) se omite"
+    },
+    {
+      "name": "Omitir: Lead Ya Procesado",
+      "type": "n8n-nodes-base.noOp",
+      "branch": "Guard = FALSE"
+    },
+    {
+      "name": "Detectar Campos Faltantes",
+      "type": "n8n-nodes-base.set",
+      "note": "faltantes = campos vacíos entre Nombre, Email y Mensaje Original"
+    },
+    {
+      "name": "Validar Datos Completos",
+      "type": "n8n-nodes-base.if",
+      "condition": "faltantes.length == 0"
+    },
+    {
+      "name": "Registrar Datos Incompletos -> Marcar Lead en Error (Datos)",
+      "type": "n8n-nodes-base.airtable",
+      "branch": "Validar Datos Completos = FALSE",
+      "note": "El error indica exactamente que campos faltan",
+      "chainNote": "Cadena de nodos consecutivos resumida en una sola entrada; el tipo indicado es el del primer nodo. Detalle completo en blueprint_raw.json"
+    },
+    {
+      "name": "Claude Haiku Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "maxTokensToSample": 1024,
+      "temperature": 0.4
+    },
+    {
+      "name": "Parser Salida Estructurada",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "schema": "{ es_vip: boolean, score_confianza: number, propuesta: string }"
+    },
+    {
+      "name": "Calificar y Redactar Propuesta",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "onError": "continueErrorOutput",
+      "note": "Propuesta en texto plano (sin markdown) porque se envía como email de texto"
+    },
+    {
+      "name": "Registrar Error de IA -> Marcar Lead en Error (IA)",
+      "type": "n8n-nodes-base.airtable",
+      "branch": "Calificar y Redactar Propuesta = error",
+      "chainNote": "Cadena de nodos consecutivos resumida en una sola entrada; el tipo indicado es el del primer nodo. Detalle completo en blueprint_raw.json"
+    },
+    {
+      "name": "Guardar Propuesta",
+      "type": "n8n-nodes-base.airtable",
+      "note": "create en tabla Propuestas, vinculado a Leads"
+    },
+    {
+      "name": "Actualizar Lead: Procesado por IA",
+      "type": "n8n-nodes-base.airtable"
+    },
+    {
+      "name": "Notificar Equipo (Slack)",
+      "type": "n8n-nodes-base.slack",
+      "note": "Aviso al equipo con lead, VIP, confianza y propuesta; sin link de n8n"
+    },
+    {
+      "name": "Guardar Slack Thread TS",
+      "type": "n8n-nodes-base.airtable",
+      "note": "Guarda el ts del aviso (message_timestamp) en Propuestas.Slack Thread TS para responder en el mismo hilo"
+    },
+    {
+      "name": "Pausa: Esperar Aprobación",
+      "type": "n8n-nodes-base.wait",
+      "resume": "timeInterval",
+      "amount": 1,
+      "unit": "minutes",
+      "note": "Nodo HITL"
+    },
+    {
+      "name": "Releer Propuesta",
+      "type": "n8n-nodes-base.airtable",
+      "note": "get, re-lee el checkbox Aprobado y el Slack Thread TS"
+    },
+    {
+      "name": "Filtro: ¿Aprobado?",
+      "type": "n8n-nodes-base.if",
+      "condition": "fields.Aprobado === true (boolean)"
+    },
+    {
+      "name": "Marcar Lead: Aprobado por Humano",
+      "type": "n8n-nodes-base.airtable",
+      "branch": "Filtro: ¿Aprobado? = TRUE",
+      "note": "Estado = Aprobado por Humano antes de contactar al cliente"
+    },
+    {
+      "name": "Filtro: ¿Excedió Intentos?",
+      "type": "n8n-nodes-base.if",
+      "condition": "$runIndex >= 4",
+      "note": "Límite anti-loop-infinito, corta a las 5 corridas"
+    },
+    {
+      "name": "Marcar Lead: Rechazado (Timeout) -> Registrar Timeout HITL -> Slack: Avisar Timeout en Hilo",
+      "type": "n8n-nodes-base.airtable",
+      "branch": "Excedió Intentos = TRUE",
+      "chainNote": "Cadena de nodos consecutivos resumida en una sola entrada; el tipo indicado es el del primer nodo. Detalle completo en blueprint_raw.json"
+    },
+    {
+      "name": "Enviar Propuesta (Gmail)",
+      "type": "n8n-nodes-base.gmail",
+      "operation": "send",
+      "note": "texto plano, sin firma de n8n; guarda threadId devuelto"
+    },
+    {
+      "name": "Guardar Thread ID y Marcar Enviado -> Marcar Propuesta: Fecha Envío -> Slack: Confirmar Envío en Hilo",
+      "type": "n8n-nodes-base.airtable",
+      "note": "Estado = Enviado; el sistema confirma el envío respondiendo en el hilo de Slack del aviso",
+      "chainNote": "Cadena de nodos consecutivos resumida en una sola entrada; el tipo indicado es el del primer nodo. Detalle completo en blueprint_raw.json"
+    }
   ],
   "connections_summary": {
     "Trigger: Nuevo Lead (Airtable)": "-> Normalizar ID Lead",
@@ -38,12 +155,17 @@
     "Guard: ¿Sigue Pendiente? (FALSE)": "-> Omitir: Lead Ya Procesado",
     "Validar Datos Completos (TRUE)": "-> Calificar y Redactar Propuesta",
     "Validar Datos Completos (FALSE)": "-> Registrar Datos Incompletos -> Marcar Lead en Error (Datos)",
-    "Calificar y Redactar Propuesta (exito)": "-> Guardar Propuesta -> Actualizar Lead: Procesado por IA -> Notificar Equipo (Slack) -> Pausa: Esperar Aprobación",
+    "Calificar y Redactar Propuesta (exito)": "-> Guardar Propuesta -> Actualizar Lead: Procesado por IA -> Notificar Equipo (Slack) -> Guardar Slack Thread TS -> Pausa: Esperar Aprobación",
     "Calificar y Redactar Propuesta (error)": "-> Registrar Error de IA -> Marcar Lead en Error (IA)",
     "Pausa: Esperar Aprobación": "-> Releer Propuesta -> Filtro: ¿Aprobado?",
-    "Filtro: ¿Aprobado? (TRUE)": "-> Enviar Propuesta (Gmail) -> Guardar Thread ID y Marcar Enviado -> Marcar Propuesta: Fecha Envío",
+    "Filtro: ¿Aprobado? (TRUE)": "-> Marcar Lead: Aprobado por Humano -> Enviar Propuesta (Gmail) -> Guardar Thread ID y Marcar Enviado -> Marcar Propuesta: Fecha Envío -> Slack: Confirmar Envío en Hilo",
     "Filtro: ¿Aprobado? (FALSE)": "-> Filtro: ¿Excedió Intentos?",
-    "Filtro: ¿Excedió Intentos? (TRUE, runIndex>=4)": "-> Marcar Lead: Rechazado (Timeout) -> Registrar Timeout HITL",
+    "Filtro: ¿Excedió Intentos? (TRUE, runIndex>=4)": "-> Marcar Lead: Rechazado (Timeout) -> Registrar Timeout HITL -> Slack: Avisar Timeout en Hilo",
     "Filtro: ¿Excedió Intentos? (FALSE)": "-> Pausa: Esperar Aprobación (loop)"
+  },
+  "dashboard": {
+    "airtableTable": "Dashboard (tblXOgvXwEULkZ3d1)",
+    "publicView": "https://airtable.com/app9d9WVwEBaTXKlJ/shrQnKIh87AaPgd40",
+    "note": "Campos en vivo: rollups (Total, VIP, Enviados, Rechazados, En Error, En Curso, Errores Registrados) y fórmulas (Tasa de Error %, Tasa de Envío %, % VIP). La automatización de Airtable 'Vincular lead nuevo al Dashboard' vincula cada lead nuevo."
   }
 }
