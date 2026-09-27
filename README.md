@@ -94,7 +94,7 @@ Es la vista "Panel de KPIs" de la tabla **Dashboard**, cuyos indicadores se calc
 | Errores Registrados | Registros en la tabla Errores (datos incompletos, fallos de IA y timeouts) |
 | En Curso | Leads todavía en el pipeline (Pendiente, Procesado por IA o Aprobado por Humano) |
 
-Cada lead nuevo se vincula solo al panel mediante la automatización de Airtable "Vincular lead nuevo al Dashboard" ([captura](evidencia/13_airtable_automatizacion_dashboard.jpg)), así los números se actualizan sin intervención manual. Valores al cierre de las pruebas: 4 leads, 2 VIP, 2 enviados, 1 rechazado, 1 en error, **tasa de error 25%** ([captura](evidencia/10_dashboard_panel_kpis_publico.jpg)). La tasa de error cuenta leads que terminaron en Estado=Error (1 de 4); "Errores Registrados" vale 2 porque el timeout de Diego también queda en la tabla Errores, aunque ese lead termina en Rechazado.
+Cada lead nuevo se vincula solo al panel mediante la automatización de Airtable "Vincular lead nuevo al Dashboard" ([captura](evidencia/13_airtable_automatizacion_dashboard.jpg)), así los números se actualizan sin intervención manual. Valores al cierre de las pruebas: 4 leads, 2 VIP, 2 enviados, 1 rechazado, 1 en error, **tasa de error 25%** ([captura](evidencia/10_dashboard_panel_kpis_publico.jpg)). La tasa de error cuenta leads que terminaron en Estado=Error (1 de 4); "Errores Registrados" vale 2 porque el timeout de Diego también queda en la tabla Errores, aunque ese lead termina en Rechazado. Después de las pruebas se sumó un quinto lead, Lucía Gómez (VIP, aprobada y enviada), usado en el video demo; por eso el panel en vivo muestra hoy 5 leads, 3 VIP, 3 enviados y una tasa de error del 20%.
 
 Como complemento, la base tiene también un panel en Airtable Interfaces con gráfico de distribución por Estado ([captura](evidencia/10_dashboard_interface_graficos.jpg)); ese panel no se comparte con enlace público porque Airtable solo permite publicar Interfaces desde el plan Team (USD 20 por usuario/mes con facturación anual), mientras que las vistas compartidas como el Panel de KPIs son gratuitas.
 
@@ -116,4 +116,4 @@ Como complemento, la base tiene también un panel en Airtable Interfaces con gr�
 
 ## Video demo
 
-Video de 3 minutos (trigger → procesamiento en n8n → resultado final, sin mostrar credenciales): **[agregar enlace al video]**
+Video de 3 minutos (trigger → procesamiento en n8n → resultado final, sin mostrar credenciales): https://drive.google.com/file/d/1-JPpBT8BmHkICwzKNWpMnZatk9VBre8X/view
