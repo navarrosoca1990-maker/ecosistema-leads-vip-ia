@@ -15,7 +15,7 @@ Sistema que califica leads comerciales entrantes con IA, redacta una propuesta p
 
 ## Enlaces
 
-- **Workflow en vivo (n8n):** https://nnavarro2890.app.n8n.cloud/workflow/qmwyzxEDlq4O8Y6H
+- **Workflow en vivo (n8n):** https://nnavarro2890.app.n8n.cloud/workflow/qmwyzxEDlq4O8Y6H (el editor de n8n Cloud requiere iniciar sesión en la instancia; el flujo completo e importable está en [`blueprint_raw.json`](blueprint_raw.json))
 - **Dashboard de control (enlace público, KPIs y tasa de errores en vivo):** https://airtable.com/app9d9WVwEBaTXKlJ/shrQnKIh87AaPgd40
 - **Base de datos completa (Airtable, lectura pública — las 4 tablas):** https://airtable.com/app9d9WVwEBaTXKlJ/shrtmhdtEg23LDX4Z
 
